@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Label, SpriteFrame, Prefab, Vec3, tween, instantiate } from 'cc';
+import { _decorator, Layers, Component, Node, Label, Sprite, SpriteFrame, Prefab, Vec3, tween, instantiate, math } from 'cc';
 import request from './request'
 import { getPokers } from '../poker/pokers'
 import { pokerCard } from './pokerCard'
@@ -14,13 +14,17 @@ interface pokerInfo {
 @ccclass('gaming')
 export class gaming extends Component {
 
+    // 开始游戏界面
+    @property({ type: Node })
+    public startGameNode: Node = null
+
     // 桌面Node
     @property({ type: Node })
     public container: Node = null
 
-    // 开始游戏界面
+    // 玩家显示界面节点（头像、下注金额显示）
     @property({ type: Node })
-    public startGameNode: Node = null
+    public playersContainer: Node = null
 
     // 所有牌
     private _allPokers: pokerInfo[] = []
@@ -44,6 +48,9 @@ export class gaming extends Component {
     // 公牌坐标
     private _boardPos = [{ x: -204, y: 17 }, { x: -101, y: 17 }, { x: 2, y: 17 }, { x: 104, y: 17 }, { x: 208, y: 17 }]
 
+    // 玩家头像及下注操作和显示坐标
+    private _playersPos = [{ x: 70, y: 585 }, { x: 1210, y: 585 }, { x: 1210, y: 188 }, { x: 480, y: 90 }, { x: 70, y: 188 }]
+
     // 当前第几轮
     private _roundGame: number = 0
 
@@ -62,8 +69,8 @@ export class gaming extends Component {
         bigBlind: 0
     }
 
-    // 大小盲注位置
-    private _blindSeat = [1, 2]
+    // 庄家位置（确定大小盲注位）
+    private _buttonSeat = 0
 
     // 大小盲注和庄家图标
     @property({ type: [SpriteFrame] })
@@ -141,7 +148,7 @@ export class gaming extends Component {
                     console.log("给玩家发");
                     const playerPokerPos = !isSecond ? new Vec3(pos.x - 55, 0, 0) : new Vec3(pos.x + 55, 0, 0);
 
-                    tween(pokerCardPrefab).to(0.2, { eulerAngles: new Vec3(0, -90, 0), scale: new Vec3(1.2, 1.2, 1.2) }).call(() => {
+                    tween(pokerCardPrefab).to(0.2, { eulerAngles: new Vec3(0, -90, 0), scale: new Vec3(1.1, 1.1, 1.1) }).call(() => {
                         pokerComponent.showPoker(poker.suit, poker.point);
                     }).by(0.2, { position: playerPokerPos, eulerAngles: new Vec3(0, 90, 0) }).start();
                 }
@@ -167,11 +174,8 @@ export class gaming extends Component {
                 let pokerComponent = pokerCardPrefab.getComponent(pokerCard);
                 pokerComponent.backPoker();
                 this.container.addChild(pokerCardPrefab);
-
                 pokerCardPrefab.setPosition(new Vec3(2, 217, 0));
-
                 const boardPos = this._boardPos[index];
-
                 tween(pokerCardPrefab).to(0.3, { position: new Vec3(boardPos.x, boardPos.y, 0) }).to(0.2, {
                     eulerAngles: new Vec3(0, -90, 0)
                 }).call(() => {
@@ -197,10 +201,20 @@ export class gaming extends Component {
 
     // 确定大小盲注
     smallOrBig() {
-        // this._blindSeat
+        this._buttonSeat = math.randomRangeInt(0, this._playersNum);
 
-        console.log(this.seatIcons);
-
+        for (let i = 0; i < 3; i++) {
+            let seatNode = new Node("seat");
+            let sp = seatNode.addComponent(Sprite);
+            sp.spriteFrame = this.seatIcons[i];
+            seatNode.layer = Layers.Enum.UI_2D;
+            this.playersContainer.addChild(seatNode);
+            let index = this._buttonSeat + i;
+            if (index == this._playersPos.length) index = 0;
+            if (index == this._playersPos.length + 1) index = 1;
+            const pos = this._playersPos[index];
+            seatNode.setPosition(new Vec3(pos.x, pos.y + 78, 0));
+        }
     }
 
     // update(deltaTime: number) {
