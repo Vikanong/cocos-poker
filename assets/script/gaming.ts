@@ -26,6 +26,13 @@ export class gaming extends Component {
     @property({ type: Node })
     public playersContainer: Node = null
 
+    // 玩家每轮押注额度的显示
+    @property({ type: Node })
+    public playersChipsNode: Node = null
+
+    // 玩家每轮押注额度数量
+    private _playersChips = []
+
     // 所有牌
     private _allPokers: pokerInfo[] = []
 
@@ -49,7 +56,7 @@ export class gaming extends Component {
     private _boardPos = [{ x: -204, y: 17 }, { x: -101, y: 17 }, { x: 2, y: 17 }, { x: 104, y: 17 }, { x: 208, y: 17 }]
 
     // 玩家头像及下注操作和显示坐标
-    private _playersPos = [{ x: 70, y: 585 }, { x: 1210, y: 585 }, { x: 1210, y: 188 }, { x: 480, y: 90 }, { x: 70, y: 188 }]
+    private _playersPos = [{ x: 70, y: 585 }, { x: 1210, y: 585 }, { x: 1210, y: 188 }, { x: 480, y: 120 }, { x: 70, y: 188 }]
 
     // 当前第几轮
     private _roundGame: number = 0
@@ -65,8 +72,8 @@ export class gaming extends Component {
 
     // 小盲注 大盲注
     private _blind = {
-        smallBlind: 0,
-        bigBlind: 0
+        smallBlind: 50,
+        bigBlind: 100
     }
 
     // 庄家位置（确定大小盲注位）
@@ -99,7 +106,6 @@ export class gaming extends Component {
     startGame() {
         this.startGameNode.active = false
         this.smallOrBig()
-        this.deal()
     }
 
     // 开始发牌
@@ -145,8 +151,8 @@ export class gaming extends Component {
 
             tween(pokerCardPrefab).to(0.4, { position: posVec, eulerAngles: new Vec3(0, 0, pos.rotation) }).call(() => {
                 if (isPlayer) {
-                    console.log("给玩家发");
-                    const playerPokerPos = !isSecond ? new Vec3(pos.x - 55, 0, 0) : new Vec3(pos.x + 55, 0, 0);
+                    // console.log("给玩家发");
+                    const playerPokerPos = !isSecond ? new Vec3(pos.x - 52, 0, 0) : new Vec3(pos.x + 52, 0, 0);
 
                     tween(pokerCardPrefab).to(0.2, { eulerAngles: new Vec3(0, -90, 0), scale: new Vec3(1.1, 1.1, 1.1) }).call(() => {
                         pokerComponent.showPoker(poker.suit, poker.point);
@@ -155,8 +161,8 @@ export class gaming extends Component {
             }).call(() => {
                 current++;
                 if (current == total) {
-                    console.log("已经发完了");
-                    this.dealBoard();
+                    // console.log("已经发完了");
+                    // this.dealBoard();
                 }
             }).start();
             positionIndex++;
@@ -181,7 +187,6 @@ export class gaming extends Component {
                 }).call(() => {
                     pokerComponent.showPoker(poker.suit, poker.point);
                 }).by(0.2, { eulerAngles: new Vec3(0, 90, 0) }).start();
-
             })
         }
     }
@@ -202,7 +207,6 @@ export class gaming extends Component {
     // 确定大小盲注
     smallOrBig() {
         this._buttonSeat = math.randomRangeInt(0, this._playersNum);
-
         for (let i = 0; i < 3; i++) {
             let seatNode = new Node("seat");
             let sp = seatNode.addComponent(Sprite);
@@ -213,8 +217,24 @@ export class gaming extends Component {
             if (index == this._playersPos.length) index = 0;
             if (index == this._playersPos.length + 1) index = 1;
             const pos = this._playersPos[index];
-            seatNode.setPosition(new Vec3(pos.x, pos.y + 78, 0));
+            seatNode.setPosition(new Vec3(pos.x - 30, pos.y + 55, 0));
+
+            if (i == 1) {
+                const smallBlind = this.playersChipsNode.children[index];
+                let chip = smallBlind.getChildByName('chip');
+                chip.getComponent(Label).string = this._blind.smallBlind.toString();
+                smallBlind.active = true;
+            }
+
+            if (i == 2) {
+                const bigBlind = this.playersChipsNode.children[index];
+                let chip = bigBlind.getChildByName('chip');
+                chip.getComponent(Label).string = this._blind.bigBlind.toString();
+                bigBlind.active = true;
+            }
         }
+
+        this.deal()
     }
 
     // update(deltaTime: number) {
